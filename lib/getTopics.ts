@@ -1,5 +1,3 @@
-import OpenAI from "openai";
-
 export interface Topic {
   id: string;
   title: string;
@@ -8,11 +6,6 @@ export interface Topic {
   question: string;
   emoji: string;
 }
-
-const client = new OpenAI({
-  apiKey: process.env.NVIDIA_API_KEY!,
-  baseURL: "https://integrate.api.nvidia.com/v1",
-});
 
 export async function getTopics(): Promise<{ topics: Topic[]; date: string }> {
   const today = new Date().toLocaleDateString("en-US", {
@@ -24,7 +17,7 @@ export async function getTopics(): Promise<{ topics: Topic[]; date: string }> {
 
   const prompt = `Today is ${today}. You are a world-affairs curator. Generate exactly 12 important topics that people worldwide should understand right now, based on current global events, trends, and pressing issues as of today.
 
-Return ONLY a valid JSON array with exactly 12 objects. No markdown, no explanation, just JSON.
+Return ONLY a valid JSON array with exactly 12 objects. No markdown, no explanation, just raw JSON.
 
 Each object must have:
 - "id": a short kebab-case slug (e.g. "ai-job-market")
@@ -37,16 +30,25 @@ Each object must have:
 Make topics diverse across categories. Make them feel urgent and relevant to ${today}.`;
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const completion = await client.chat.completions.create({
-      model: "nvidia/nemotron-3-ultra-550b-a55b",
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.7,
-      max_tokens: 2048,
-      stream: false,
-    } as any) as { choices: Array<{ message: { content: string } }> };
+    const res = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${process.env.NVIDIA_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "nvidia/nemotron-3-ultra-550b-a55b",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.7,
+        max_tokens: 2048,
+        stream: false,
+      }),
+    });
 
-    const raw = (completion.choices[0]?.message?.content ?? "").trim();
+    if (!res.ok) throw new Error(`NVIDIA API ${res.status}`);
+
+    const data = await res.json();
+    const raw = (data.choices?.[0]?.message?.content ?? "").trim();
     const jsonStart = raw.indexOf("[");
     const jsonEnd = raw.lastIndexOf("]") + 1;
     const topics: Topic[] = JSON.parse(raw.slice(jsonStart, jsonEnd));
