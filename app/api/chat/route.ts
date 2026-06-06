@@ -51,22 +51,23 @@ End every response with a "What You Can Do" section with 3 concrete personal act
 
           if (delta?.reasoning_content) {
             controller.enqueue(
-              encoder.encode(`t:${JSON.stringify(delta.reasoning_content)}`)
+              encoder.encode(`t:${JSON.stringify(delta.reasoning_content)}\n`)
             );
           }
           if (delta?.content) {
             controller.enqueue(
-              encoder.encode(`a:${JSON.stringify(delta.content)}`)
+              encoder.encode(`a:${JSON.stringify(delta.content)}\n`)
             );
           }
         }
       } catch (err) {
-        console.error("Chat stream error:", err);
+        const message = err instanceof Error ? err.message : String(err);
+        console.error("Chat stream error:", message);
         controller.enqueue(
-          encoder.encode(`a:${JSON.stringify("Sorry, something went wrong. Please try again.")}`)
+          encoder.encode(`a:${JSON.stringify(`Error: ${message}`)}`)
         );
       } finally {
-        controller.enqueue(encoder.encode("d:done"));
+        controller.enqueue(encoder.encode("d:done\n"));
         controller.close();
       }
     },
