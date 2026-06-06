@@ -3,7 +3,7 @@ import { getTopics } from "@/lib/getTopics";
 import TopicGrid from "@/components/TopicGrid";
 import Header from "@/components/Header";
 
-export const revalidate = 86400;
+export const revalidate = 43200;
 
 export default async function Home() {
   const { topics, date } = await getTopics();
